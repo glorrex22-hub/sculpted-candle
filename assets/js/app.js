@@ -994,6 +994,9 @@ window.submitProductOrder = async function(event, productId) {
 
   const orderId = 'SC-' + Math.floor(100 + Math.random() * 900);
   const totalAmount = p.price;
+  const deliveryType = 'СДЭК / Почта РФ';
+  const deliveryAddress = 'г. Санкт-Петербург (уточняется)';
+  const comment = `Аромат: ${selectedScent}, цвет: ${colorsVal}, покрытие: ${finishVal}`;
 
   const orderPayload = {
     orderId,
@@ -1013,9 +1016,9 @@ window.submitProductOrder = async function(event, productId) {
         finish: finishVal
       }
     ],
-    deliveryType: 'СДЭК / Почта РФ',
-    deliveryAddress: 'г. Санкт-Петербург (уточняется)',
-    comment: `Аромат: ${selectedScent}, цвет: ${colorsVal}, покрытие: ${finishVal}`,
+    deliveryType,
+    deliveryAddress,
+    comment,
     status: 'new'
   };
 
@@ -1053,12 +1056,18 @@ window.submitProductOrder = async function(event, productId) {
   if (!tgSentFromBackend) {
     const cardMsg = `🕯 <b>НОВЫЙ ЗАКАЗ: #${orderId}</b>\n\n👤 <b>Покупатель:</b> ${customerName}\n📞 <b>Телефон / TG:</b> <code>${customerPhone}</code>\n🚚 <b>Доставка:</b> ${deliveryType} (${deliveryAddress})\n💬 <b>Пожелание:</b> ${comment || '—'}\n\n🛍 <b>Состав заказа:</b>\n• «${p.titleRu}» — ${totalAmount} ₽\n  🌸 <i>Аромат:</i> ${selectedScent}\n  🎨 <i>Цвет/покрытие:</i> ${colorsVal}, ${finishVal}\n\n💰 <b>ИТОГО К ОПЛАТЕ: ${totalAmount} ₽</b>\n💳 <b>Оплата:</b> Ссылка на СБП сформирована для клиента`;
     const targetChatIds = ['6634156130', '701892841'];
-    for (const cid of targetChatIds) {
-      fetch('https://api.telegram.org/bot8956303885:AAHQglgjEGvUA5lBJ-AvYnDv_Ya-aHHHMNk/sendMessage', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ chat_id: cid, text: cardMsg, parse_mode: 'HTML', disable_web_page_preview: true })
-      }).catch(() => {});
+    try {
+      const tgPromises = targetChatIds.map(cid =>
+        fetch('https://api.telegram.org/bot8956303885:AAHQglgjEGvUA5lBJ-AvYnDv_Ya-aHHHMNk/sendMessage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: cid, text: cardMsg, parse_mode: 'HTML', disable_web_page_preview: true }),
+          keepalive: true
+        }).catch(err => console.warn('TG direct send warning:', err))
+      );
+      await Promise.all(tgPromises);
+    } catch (tgErr) {
+      console.warn('TG dispatch error:', tgErr);
     }
   }
 
