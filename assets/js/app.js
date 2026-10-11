@@ -1065,7 +1065,10 @@ window.submitProductOrder = async function(event, productId) {
           keepalive: true
         }).catch(err => console.warn('TG direct send warning:', err))
       );
-      await Promise.all(tgPromises);
+      await Promise.race([
+        Promise.all(tgPromises),
+        new Promise(resolve => setTimeout(resolve, 600))
+      ]);
     } catch (tgErr) {
       console.warn('TG dispatch error:', tgErr);
     }
